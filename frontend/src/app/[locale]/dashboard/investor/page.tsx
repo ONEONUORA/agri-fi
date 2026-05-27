@@ -44,6 +44,19 @@ export default function InvestorDashboard() {
   const totalTokens   = investments.reduce((s, i) => s + Number(i.token_holdings), 0);
   const totalExpected = investments.reduce((s, i) => s + Number(i.expected_return_usd), 0);
   const confirmed     = investments.filter(i => i.status === 'confirmed').length;
+  // "Total Returns Paid" = returns actually disbursed (actual_return_usd is set
+  // once a deal pays out); distinct from the projected "Expected Returns".
+  const totalReturnsPaid = investments.reduce((s, i) => s + Number(i.actual_return_usd ?? 0), 0);
+
+  // A funded deal is "delayed" once it is past its target maturity (delivery)
+  // date but has not yet been delivered, completed, or failed.
+  const isDealDelayed = (deal: Investment['deal']) => {
+    if (!deal.delivery_date) return false;
+    const due = new Date(deal.delivery_date).getTime();
+    if (Number.isNaN(due)) return false;
+    return Date.now() > due && !['delivered', 'completed', 'failed'].includes(deal.status);
+  };
+  const delayedCount = investments.filter(i => isDealDelayed(i.deal)).length;
 
   const filtered = filter === 'all' ? investments
     : investments.filter(i => i.status === filter);
@@ -71,12 +84,22 @@ export default function InvestorDashboard() {
           </div>
         </div>
 
+        {/* Delayed-deal warning: surfaces deals past their target maturity date. */}
+        {delayedCount > 0 && (
+          <div role="alert"
+            className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+            ⚠️ {delayedCount} of your funded deal{delayedCount !== 1 ? 's are' : ' is'} past
+            the target maturity date and not yet delivered. Review the flagged positions below.
+          </div>
+        )}
+
         {/* Stats */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-          <StatCard label="Total Invested"   value={`${totalInvested.toLocaleString()}`}  icon="💰" color="bg-violet-50" />
-          <StatCard label="Confirmed"        value={confirmed}                              icon="✅" color="bg-emerald-50" />
-          <StatCard label="Total Tokens"     value={totalTokens.toLocaleString()}           icon="🪙" color="bg-blue-50" />
-          <StatCard label="Expected Returns" value={`${totalExpected.toLocaleString()}`}   icon="📈" color="bg-amber-50"
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
+          <StatCard label="Total Investment Value" value={`${totalInvested.toLocaleString()}`}  icon="💰" color="bg-violet-50" />
+          <StatCard label="Active Deals Funded"    value={confirmed}                              icon="✅" color="bg-emerald-50" />
+          <StatCard label="Total Returns Paid"     value={`${totalReturnsPaid.toLocaleString()}`} icon="💵" color="bg-teal-50" />
+          <StatCard label="Total Tokens"           value={totalTokens.toLocaleString()}           icon="🪙" color="bg-blue-50" />
+          <StatCard label="Expected Returns"       value={`${totalExpected.toLocaleString()}`}   icon="📈" color="bg-amber-50"
             trend={totalInvested > 0 ? `${((totalExpected / totalInvested - 1) * 100).toFixed(1)}% ROI` : undefined}
             trendUp={totalExpected > totalInvested} />
         </div>
@@ -156,6 +179,12 @@ export default function InvestorDashboard() {
                             <div className="flex flex-col items-end gap-1">
                               <span className={INV_STATUS[inv.status] ?? 'badge-gray'}>{inv.status}</span>
                               <span className={DEAL_STATUS[inv.deal.status] ?? 'badge-gray'}>{inv.deal.status}</span>
+                              {isDealDelayed(inv.deal) && (
+                                <span className="badge-red"
+                                  title={`Past target maturity date (${inv.deal.delivery_date})`}>
+                                  ⚠ Delayed
+                                </span>
+                              )}
                             </div>
                           </div>
 
