@@ -165,7 +165,6 @@ describe('RabbitMQ Consumer Concurrency Settings (E2E)', () => {
         { sequenceNumber: 3 },
       ];
 
-      const publishedAt = Date.now();
       messages.forEach((msg) => {
         client.emit(TEST_EVENT_PATTERN, msg);
       });
@@ -180,10 +179,9 @@ describe('RabbitMQ Consumer Concurrency Settings (E2E)', () => {
         const endTime = processingEndTimes.get(seqNum) || 0;
 
         if (previousEndTime > 0) {
-          const overlap = Math.min(endTime, previousEndTime) - Math.max(
-            startTime,
-            previousEndTime,
-          );
+          const overlap =
+            Math.min(endTime, previousEndTime) -
+            Math.max(startTime, previousEndTime);
           expect(overlap).toBeLessThanOrEqual(10);
         }
         previousEndTime = endTime;

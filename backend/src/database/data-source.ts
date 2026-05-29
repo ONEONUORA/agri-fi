@@ -7,7 +7,7 @@ dotenv.config();
 const databaseUrl = process.env.DATABASE_URL;
 const databaseReplicaUrl = process.env.DATABASE_REPLICA_URL;
 
-const masterConnection = databaseUrl 
+const masterConnection = databaseUrl
   ? { url: databaseUrl }
   : {
       host: process.env.DATABASE_HOST ?? 'localhost',
@@ -20,7 +20,10 @@ const masterConnection = databaseUrl
 const slaveConnection = databaseReplicaUrl
   ? { url: databaseReplicaUrl }
   : {
-      host: process.env.DATABASE_REPLICA_HOST ?? process.env.DATABASE_HOST ?? 'localhost',
+      host:
+        process.env.DATABASE_REPLICA_HOST ??
+        process.env.DATABASE_HOST ??
+        'localhost',
       port: parseInt(process.env.DATABASE_PORT ?? '5432', 10),
       username: process.env.DATABASE_USER ?? 'postgres',
       password: process.env.DATABASE_PASSWORD ?? 'postgres',

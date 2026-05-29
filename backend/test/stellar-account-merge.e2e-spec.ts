@@ -4,7 +4,7 @@ import { ConfigService } from '@nestjs/config';
 import { PinoLogger } from 'nestjs-pino';
 import { getRepositoryToken } from '@nestjs/typeorm';
 import { TransactionLog } from '../src/stellar/entities/transaction-log.entity';
-import { Keypair, Horizon } from 'stellar-sdk';
+import { Keypair, Horizon } from '@stellar/stellar-sdk';
 import axios from 'axios';
 
 describe('Stellar Account Merge (e2e)', () => {
@@ -19,8 +19,10 @@ describe('Stellar Account Merge (e2e)', () => {
           useValue: {
             get: jest.fn((key: string, defaultValue: any) => {
               if (key === 'STELLAR_NETWORK') return 'testnet';
-              if (key === 'STELLAR_HORIZON_URL') return 'https://horizon-testnet.stellar.org';
-              if (key === 'ENCRYPTION_KEY') return '0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef';
+              if (key === 'STELLAR_HORIZON_URL')
+                return 'https://horizon-testnet.stellar.org';
+              if (key === 'ENCRYPTION_KEY')
+                return '0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef';
               return defaultValue;
             }),
           },
@@ -56,18 +58,28 @@ describe('Stellar Account Merge (e2e)', () => {
 
     // 2. Fund them on testnet using friendbot
     try {
-      await axios.get(`https://friendbot.stellar.org?addr=${sourceKeypair.publicKey()}`);
-      await axios.get(`https://friendbot.stellar.org?addr=${destKeypair.publicKey()}`);
+      await axios.get(
+        `https://friendbot.stellar.org?addr=${sourceKeypair.publicKey()}`,
+      );
+      await axios.get(
+        `https://friendbot.stellar.org?addr=${destKeypair.publicKey()}`,
+      );
     } catch (e) {
-      console.warn('Friendbot failed, skipping test if network is unreachable', e);
+      console.warn(
+        'Friendbot failed, skipping test if network is unreachable',
+        e,
+      );
       return;
     }
 
     const server = new Horizon.Server('https://horizon-testnet.stellar.org');
-    
+
     // Check initial balance
     const destAccountBefore = await server.loadAccount(destKeypair.publicKey());
-    const destBalanceBefore = parseFloat(destAccountBefore.balances.find(b => b.asset_type === 'native')?.balance || '0');
+    const destBalanceBefore = parseFloat(
+      destAccountBefore.balances.find((b) => b.asset_type === 'native')
+        ?.balance || '0',
+    );
 
     // 3. Execute account merge operation using the stellarService (if possible) or directly
     // stellarService.closeAccount requires an issuer/escrow account, but it zero out custom assets.
@@ -82,11 +94,16 @@ describe('Stellar Account Merge (e2e)', () => {
 
     // 4. Verify account balance merges to destination wallet
     const destAccountAfter = await server.loadAccount(destKeypair.publicKey());
-    const destBalanceAfter = parseFloat(destAccountAfter.balances.find(b => b.asset_type === 'native')?.balance || '0');
+    const destBalanceAfter = parseFloat(
+      destAccountAfter.balances.find((b) => b.asset_type === 'native')
+        ?.balance || '0',
+    );
 
     expect(destBalanceAfter).toBeGreaterThan(destBalanceBefore);
 
     // Verify source account is merged (not found)
-    await expect(server.loadAccount(sourceKeypair.publicKey())).rejects.toThrow();
+    await expect(
+      server.loadAccount(sourceKeypair.publicKey()),
+    ).rejects.toThrow();
   });
 });
