@@ -12,6 +12,26 @@ const config: Config = {
         sans: ['var(--font-inter)', 'Inter', 'system-ui', 'sans-serif'],
       },
       colors: {
+        primary: {
+          DEFAULT: 'hsl(var(--color-primary) / <alpha-value>)',
+          foreground: 'hsl(var(--color-primary-foreground) / <alpha-value>)',
+          muted: 'hsl(var(--color-primary-muted) / <alpha-value>)',
+        },
+        secondary: {
+          DEFAULT: 'hsl(var(--color-secondary) / <alpha-value>)',
+          foreground: 'hsl(var(--color-secondary-foreground) / <alpha-value>)',
+          muted: 'hsl(var(--color-secondary-muted) / <alpha-value>)',
+        },
+        neutral: {
+          DEFAULT: 'hsl(var(--color-neutral) / <alpha-value>)',
+          foreground: 'hsl(var(--color-neutral-foreground) / <alpha-value>)',
+          muted: 'hsl(var(--color-neutral-muted) / <alpha-value>)',
+        },
+        canvas: 'hsl(var(--color-canvas) / <alpha-value>)',
+        surface: 'hsl(var(--color-surface) / <alpha-value>)',
+        border: 'hsl(var(--color-border) / <alpha-value>)',
+        foreground: 'hsl(var(--color-text) / <alpha-value>)',
+        'muted-foreground': 'hsl(var(--color-muted-text) / <alpha-value>)',
         brand: {
           50:  '#f0fdf4',
           100: '#dcfce7',
@@ -34,8 +54,8 @@ const config: Config = {
         'glow-lg': '0 0 40px rgb(22 163 74 / 0.12)',
       },
       backgroundImage: {
-        'hero-gradient':    'linear-gradient(135deg, #f0fdf4 0%, #ffffff 50%, #ecfdf5 100%)',
-        'brand-gradient':   'linear-gradient(135deg, #16a34a 0%, #059669 100%)',
+        'hero-gradient':    'linear-gradient(135deg, hsl(var(--color-primary-muted)) 0%, hsl(var(--color-surface)) 45%, hsl(var(--color-secondary-muted)) 100%)',
+        'brand-gradient':   'linear-gradient(135deg, hsl(var(--color-primary)) 0%, hsl(var(--color-secondary)) 100%)',
         'dark-gradient':    'linear-gradient(135deg, #0f172a 0%, #1e293b 100%)',
         'card-gradient':    'linear-gradient(135deg, #ffffff 0%, #f8fafc 100%)',
         'shimmer-gradient': 'linear-gradient(90deg, #f1f5f9 25%, #e2e8f0 50%, #f1f5f9 75%)',

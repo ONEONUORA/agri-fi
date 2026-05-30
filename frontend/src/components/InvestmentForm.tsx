@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useWallet } from '../hooks/useWallet';
 import { getStoredToken } from '../lib/api';
+import { useToast } from './ui/ToastProvider';
 
 interface InvestmentFormProps {
   dealId: string;
@@ -10,13 +11,16 @@ interface InvestmentFormProps {
   tokenPrice: number;
   onSuccess?: (investment: any) => void;
   onError?: (error: string) => void;
+  onQuantityChange?: (quantity: number) => void;
 }
 
 interface InvestmentResponse {
-  id: string;
+  investment: {
+    id: string;
+    tokenAmount: number;
+    amountUsd: number;
+  };
   unsignedXdr: string;
-  tokenAmount: number;
-  amountUsd: number;
 }
 
 interface SuccessState {
@@ -33,7 +37,9 @@ export const InvestmentForm: React.FC<InvestmentFormProps> = ({
   tokenPrice = 100,
   onSuccess,
   onError,
+  onQuantityChange,
 }) => {
+  const { toast, promise } = useToast();
   const { isConnected, publicKey, signTransaction } = useWallet();
   const [tokenQuantity, setTokenQuantity] = useState<number | ''>(1);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -57,12 +63,12 @@ export const InvestmentForm: React.FC<InvestmentFormProps> = ({
     e.preventDefault();
     
     if (!isConnected || !publicKey) {
-      setError('Please connect your wallet first');
+      toast('Please connect your wallet first', 'warning');
       return;
     }
 
     if (safeQuantity < 1 || safeQuantity > maxTokens) {
-      setError(`Token quantity must be between 1 and ${maxTokens}`);
+      toast(`Token quantity must be between 1 and ${maxTokens}`, 'warning');
       return;
     }
 
@@ -70,13 +76,13 @@ export const InvestmentForm: React.FC<InvestmentFormProps> = ({
     setError(null);
     setSuccess(null);
 
-    try {
+    const investmentFlow = async () => {
       const token = getStoredToken();
       if (!token) {
         throw new Error('Please log in first');
       }
 
-      // Step 1: Create pending investment and get unsigned XDR
+      // Step 1: Create pending investment
       const createResponse = await fetch('/api/investments', {
         method: 'POST',
         headers: {
@@ -86,6 +92,7 @@ export const InvestmentForm: React.FC<InvestmentFormProps> = ({
         body: JSON.stringify({
           tradeDealId: dealId,
           tokenAmount: safeQuantity,
+          amountUsd: totalAmount,
         }),
       });
 
@@ -96,11 +103,11 @@ export const InvestmentForm: React.FC<InvestmentFormProps> = ({
 
       const investmentData: InvestmentResponse = await createResponse.json();
 
-      // Step 2: Sign the transaction with Freighter
+      // Step 2: Sign transaction
       const signedXdr = await signTransaction(investmentData.unsignedXdr);
 
       // Step 3: Submit signed transaction to backend
-      const submitResponse = await fetch(`/api/investments/${investmentData.id}/fund`, {
+      const submitResponse = await fetch(`/api/investments/${investmentData.investment.id}/fund`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -117,10 +124,17 @@ export const InvestmentForm: React.FC<InvestmentFormProps> = ({
         throw new Error(errorData.message || 'Failed to submit transaction');
       }
 
-      const finalResult = await submitResponse.json();
+      return await submitResponse.json();
+    };
+
+    try {
+      const finalResult = await promise(investmentFlow(), {
+        loading: 'Processing Stellar investment...',
+        success: 'Transaction signed and submitted! 🚀',
+        error: 'Investment failed. Please try again.',
+      });
       
       if (finalResult.status === 'queued') {
-        // Transaction is queued for async processing
         setSuccess({
           investmentAmount: totalAmount,
           tokenCount: safeQuantity,
@@ -128,11 +142,8 @@ export const InvestmentForm: React.FC<InvestmentFormProps> = ({
           isQueued: true,
           investmentId: finalResult.investmentId,
         });
-        
-        // Start polling for status updates
         startPollingInvestmentStatus(finalResult.investmentId);
       } else {
-        // Transaction confirmed synchronously
         setSuccess({
           investmentAmount: totalAmount,
           tokenCount: safeQuantity,
@@ -142,11 +153,8 @@ export const InvestmentForm: React.FC<InvestmentFormProps> = ({
       }
       
       onSuccess?.(finalResult);
-      
-      // Reset form
       setTokenQuantity(1);
-      
-    } catch (error) {
+    } catch (error: any) {
       const errorMessage = error instanceof Error ? error.message : 'Investment failed';
       setError(errorMessage);
       onError?.(errorMessage);
@@ -272,7 +280,9 @@ export const InvestmentForm: React.FC<InvestmentFormProps> = ({
           value={tokenQuantity === '' ? '' : tokenQuantity}
           onChange={(e) => {
             const val = parseInt(e.target.value, 10);
+            const qty = isNaN(val) ? 0 : val;
             setTokenQuantity(isNaN(val) ? '' : val);
+            onQuantityChange?.(qty);
           }}
           className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
           disabled={isSubmitting}

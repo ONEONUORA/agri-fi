@@ -1,11 +1,18 @@
 import 'dotenv/config';
 import { NestFactory } from '@nestjs/core';
-import { ValidationPipe, BadRequestException } from '@nestjs/common';
+import {
+  ValidationPipe,
+  BadRequestException,
+  VersioningType,
+} from '@nestjs/common';
 import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
 import { AppModule } from './app.module';
+import { applySecurityHeaders } from './common/middleware/security-headers.middleware';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
+
+  app.use(applySecurityHeaders);
 
   app.useGlobalPipes(
     new ValidationPipe({
@@ -28,6 +35,8 @@ async function bootstrap() {
       },
     }),
   );
+
+  app.enableVersioning({ type: VersioningType.URI, defaultVersion: '1' });
 
   app.enableCors({
     origin: process.env.ALLOWED_ORIGINS?.split(',') ?? [

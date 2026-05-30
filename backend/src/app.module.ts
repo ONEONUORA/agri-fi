@@ -21,6 +21,8 @@ import { HealthModule } from './health/health.module';
 import { TerminusModule } from '@nestjs/terminus';
 import { ThrottlerModule } from '@nestjs/throttler';
 import { SorobanModule } from './soroban/soroban.module';
+import { MetricsModule } from './metrics/metrics.module';
+import { validateEnvironment } from './config/env.validation';
 
 @Module({
   imports: [
@@ -37,6 +39,7 @@ import { SorobanModule } from './soroban/soroban.module';
     ConfigModule.forRoot({
       isGlobal: true,
       envFilePath: '.env',
+      validate: validateEnvironment,
     }),
     TypeOrmModule.forRootAsync({
       imports: [ConfigModule],
@@ -56,14 +59,13 @@ import { SorobanModule } from './soroban/soroban.module';
     HealthModule,
     TerminusModule,
     SorobanModule,
+    MetricsModule,
   ],
 })
 export class AppModule implements NestModule {
   configure(consumer: MiddlewareConsumer) {
     // ClsMiddleware MUST run first to establish the async context,
     // then CorrelationIdMiddleware can safely call cls.set()
-    consumer
-      .apply(ClsMiddleware, CorrelationIdMiddleware)
-      .forRoutes('*');
+    consumer.apply(ClsMiddleware, CorrelationIdMiddleware).forRoutes('*');
   }
 }

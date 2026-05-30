@@ -4,6 +4,7 @@ import { StellarService } from '../stellar/stellar.service';
 import { TradeDealsService } from '../trade-deals/trade-deals.service';
 import { ConfigService } from '@nestjs/config';
 import { createHash } from 'crypto';
+import { buildDocumentMemo } from '../stellar/anchor-memo';
 
 @Injectable()
 export class DocumentsService {
@@ -33,7 +34,7 @@ export class DocumentsService {
 
     // 2. Calculate SHA-256 of the file for Stellar Anchoring
     const fileHash = createHash('sha256').update(file.buffer).digest('hex');
-    const memo = this.buildMemo(tradeDealId, fileHash);
+    const memo = buildDocumentMemo(tradeDealId, fileHash);
 
     const signerSecret = this.config.get<string>('STELLAR_PLATFORM_SECRET', '');
 
@@ -53,9 +54,5 @@ export class DocumentsService {
       fileSizeBytes: file.size,
       memoText: memo,
     });
-  }
-
-  private buildMemo(tradeDealId: string, hash: string): string {
-    return `AGRIC:DOC:${tradeDealId}:${hash}`;
   }
 }
