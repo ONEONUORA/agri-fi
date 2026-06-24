@@ -96,7 +96,16 @@ jobs:
           DATABASE_URL: postgres://agri:agri@localhost:5432/agri_test
 
       - name: Test
-        run: npm test -- --forceExit --passWithNoTests --coverage
+        run: npm test -- --forceExit --passWithNoTests --coverage --detectOpenHandles
+        working-directory: backend
+
+      - name: Check coverage thresholds
+        if: always()
+        run: |
+          if [ -f coverage/coverage-summary.json ]; then
+            echo "Coverage Report:"
+            cat coverage/coverage-summary.json | jq '.total'
+          fi
         working-directory: backend
 
       - name: SonarQube scan
