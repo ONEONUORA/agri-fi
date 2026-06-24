@@ -10,7 +10,9 @@ import { AppModule } from './app.module';
 import { applySecurityHeaders } from './common/middleware/security-headers.middleware';
 
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule);
+  // rawBody: true preserves the unparsed request buffer on req.rawBody,
+  // which is required by WebhookSignatureGuard for HMAC verification.
+  const app = await NestFactory.create(AppModule, { rawBody: true });
 
   app.use(applySecurityHeaders);
 
